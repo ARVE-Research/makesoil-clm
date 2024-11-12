@@ -15,16 +15,20 @@ The following software is **REQUIRED** to run the script's programs:
  
 The raw soil data could be downloaded in advance, otherwise a data download script is also provided.
 
+## Building
+
+Compile the helper programs using `make` before executing the script.
+
 ## User settings
 
-### specify a directory for the output file NB this directory has to exist before specifying
+specify a directory for the output file NB this directory has to exist before specifying
 
 `outdir=../global30minute`
 
-### specify a target directory where the raw data is stored (or should be downloaded)
+specify a target directory where the raw data is stored (or should be downloaded)
 
 `datadir=/Volumes/Amalanchier/datasets/soils`
 
-### set to true if the raw data should be downloaded
+set to true if the raw data should be downloaded
 
 `getdata=false`
