@@ -1,0 +1,16 @@
+# Makesoil
+This script generates a netCDF map of derived soil properties file at resolutions of 30" (1km) and coarser.
+
+The script uses the 1km [SoilGrids](https://www.isric.org/explore/soilgrids) rasters of the following soil physical properties:
+* sand (mass fraction)
+* silt (mass fraction)
+* clay (mass fraction)
+* organic matter (mass fraction)
+* coarse fragments (volume fraction)
+ 
+The script also uses a 250m raster of WRB soil name from the [2017 SoilGrids data](https://www.isric.org/explore/soilgrids/faq-soilgrids-2017) that informs the pedotransfer functions.
+ 
+The following software is **REQUIRED** to run the script's programs: 
+`cURL GDAL GMT NCO netCDF netCDF-Fortran`
+ 
+The raw soil data could be downloaded in advance, otherwise a data download script is also provided.
