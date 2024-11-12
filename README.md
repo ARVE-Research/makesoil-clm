@@ -1,5 +1,5 @@
 # Makesoil
-This script generates a netCDF map of derived soil properties file at resolutions of 30" (1km) and coarser.
+This script `makefile.sh` generates a netCDF map of derived soil properties file at resolutions of 30" (1km) and coarser.
 
 The script uses the 1km [SoilGrids](https://www.isric.org/explore/soilgrids) rasters of the following soil physical properties:
 * sand (mass fraction)
