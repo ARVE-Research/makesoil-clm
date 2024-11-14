@@ -18,11 +18,13 @@
 # ------------------------
 # USER SETTINGS
 
-# specify a directory for the output file
+# specify a directory for the output file NB this directory has to exist before specifying, 
+# example:
 
 outdir=../global30minute
 
-# specify a target directory where the raw data is stored (or should be downloaded)
+# specify a target directory where the raw data is stored (or should be downloaded), 
+# example:
 
 datadir=/Volumes/Amalanchier/datasets/soils
 
@@ -42,18 +44,22 @@ then
   
   curl --output-dir $datadir -O https://files.isric.org/soilgrids/former/2017-03-10/data/TAXNWRB_250m_ll.tif
   
-  # All other soil physical properties (1km Homolosine rasters about 190 MB each, need about 6GB for all data)
+  # All other soil physical properties (1km Homolosine rasters about 190 MB each, need about 6 GB for all data)
   
   ./download_from_isric.sh $datadir
   
 fi
+
+# make sure the helper programs are up-to-date
+
+make
 
 # -----
 # 1) specify the output projection, extent, and resolution 
 
 # specify a map projection using an EPSG code, proj4 string, or external file
 
-proj="EPSG:4326"  # unprojected lon-lat
+proj="EPSG:4326"  # example: unprojected lon-lat
 
 # specify the map extent and resolution
 
