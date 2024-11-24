@@ -38,6 +38,8 @@ real(sp), allocatable, dimension(:,:,:) :: whc
 real(sp), allocatable, dimension(:) :: zpos
 real(sp), allocatable, dimension(:) :: dz
 
+real(sp), allocatable, dimension(:,:) :: datacheck
+
 type(soildata) :: soil
 
 real(sp), parameter :: rmissing = -9999.
@@ -103,6 +105,8 @@ allocate(clay(xlen,ylen,nl))
 allocate(cfvo(xlen,ylen,nl))
 allocate(soc(xlen,ylen,nl))
 
+allocate(datacheck(5,nl))
+
 ! ---------
 ! read input soil spatial data
 
@@ -132,13 +136,17 @@ where (sand < 0.) sand = rmissing
 do y = 1,ylen
   do x = 1,xlen
   
-    if (sand(x,y,1) /= rmissing) then
+    do l = 1,nl
+      datacheck(:,l) = [sand(x,y,l),silt(x,y,l),clay(x,y,l),cfvo(x,y,l),soc(x,y,l)]
+    end do
+  
+    if (all(datacheck /= rmissing))  then
     
       soil%layer%sand = sand(x,y,:)
       soil%layer%silt = silt(x,y,:)
       soil%layer%clay = clay(x,y,:)
       soil%layer%cfvo = cfvo(x,y,:)
-      soil%layer%orgm = soc(x,y,:) * omcf
+      soil%layer%orgm =  soc(x,y,:) * omcf
       
       do l = 1,nl
         if (soil%layer(l)%sand + soil%layer(l)%silt + soil%layer(l)%clay > 1.) then
@@ -150,7 +158,9 @@ do y = 1,ylen
           soil%layer(l)%clay = soil%layer(l)%clay * scale
         end if
       end do
-            
+
+      ! write(0,*)x,y,datacheck
+
       call simplesoil(soil)
       
       Tsat(x,y,:) = soil%layer%Tsat

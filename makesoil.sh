@@ -21,7 +21,8 @@
 # specify a directory for the output file NB this directory has to exist before specifying, 
 # example:
 
-outdir=../global30minute
+# outdir=../global30minute
+outdir=NA5km
 
 # specify a target directory where the raw data is stored (or should be downloaded), 
 # example:
@@ -59,11 +60,17 @@ make
 
 # specify a map projection using an EPSG code, proj4 string, or external file
 
-proj="EPSG:4326"  # example: unprojected lon-lat
+# proj="EPSG:4326"  # example: unprojected lon-lat
+
+proj="NAlaea.prj"
 
 # specify the map extent and resolution
 
-extent="-180. -90.  180. 90."      #  <xmin> <ymin> <xmax> <ymax>
+# extent="-180. -90.  180. 90."      #  <xmin> <ymin> <xmax> <ymax>
+
+extent="-4350000. -3885000.  3345000. 3780000."      #  <xmin> <ymin> <xmax> <ymax>
+
+res=5000.
 
 min=30.                           # target resolution in MINUTES for lat-lon or METERS for projected grids
 
@@ -92,6 +99,8 @@ echo $xlen $ylen $res
 # 3) create output file based on the dimensions of the input
 
 outfile=$outdir/soils.nc
+
+echo creating $outfile
 
 sed -e "s/xlen/$xlen/g" -e "s/ylen/$ylen/g" soildata.cdl | ncgen -4 -o $outfile
 
@@ -128,6 +137,8 @@ done
 # 6) add coordinates
 
 ./pastecoords tmp.nc $outfile
+
+exit
 
 # -----
 # 7) calculate derived soil properties
