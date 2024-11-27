@@ -147,6 +147,10 @@ end if
 T33   = W(1) * bulk   ! eqn. 1, NB pw (water density assumed = 1)
 T1500 = W(2) * bulk
 
+if (T33 > Tsat) then
+  write(0,*)'invalid T33',Tsat,T33,T1500,soiltype,sand,clay,bulk,OM
+end if
+
 end subroutine calctheta
 
 ! ---------------------------------------------------------------------------
@@ -223,9 +227,13 @@ real(sp), parameter :: num   = l1500 - l33
 real(sp) :: B
 real(sp) :: lambda
 
+! ---
+
 B = num / (log(T33) - log(T1500))
 
 lambda = 1. / B
+
+! write(0,*)'fksat',Tsat,T33,T1500,lambda
 
 fKsat = 1930. * (Tsat - T33)**(3.-lambda)
 

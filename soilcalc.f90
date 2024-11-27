@@ -31,9 +31,13 @@ real(sp), allocatable, dimension(:,:,:) :: clay
 real(sp), allocatable, dimension(:,:,:) :: cfvo
 real(sp), allocatable, dimension(:,:,:) :: soc
 
+real(sp), allocatable, dimension(:,:,:) :: bulk
 real(sp), allocatable, dimension(:,:,:) :: Tsat
-real(sp), allocatable, dimension(:,:,:) :: Ksat
+real(sp), allocatable, dimension(:,:,:) :: T33
+real(sp), allocatable, dimension(:,:,:) :: T1500
 real(sp), allocatable, dimension(:,:,:) :: whc
+real(sp), allocatable, dimension(:,:,:) :: Ksat
+
 
 real(sp), allocatable, dimension(:) :: zpos
 real(sp), allocatable, dimension(:) :: dz
@@ -104,6 +108,7 @@ allocate(silt(xlen,ylen,nl))
 allocate(clay(xlen,ylen,nl))
 allocate(cfvo(xlen,ylen,nl))
 allocate(soc(xlen,ylen,nl))
+allocate(bulk(xlen,ylen,nl))
 
 allocate(datacheck(5,nl))
 
@@ -115,6 +120,7 @@ call getvar('silt',silt)
 call getvar('clay',clay)
 call getvar('cfvo',cfvo)
 call getvar('soc',soc)
+call getvar('bdod',bulk)
 
 status = nf90_close(ncid)
 if (status /= nf90_noerr) call handle_err(status)
@@ -122,8 +128,10 @@ if (status /= nf90_noerr) call handle_err(status)
 ! ---------
 
 allocate(Tsat(xlen,ylen,nl))
-allocate(Ksat(xlen,ylen,nl))
+allocate(T33(xlen,ylen,nl))
+allocate(T1500(xlen,ylen,nl))
 allocate(whc(xlen,ylen,nl))
+allocate(Ksat(xlen,ylen,nl))
 
 Tsat = rmissing
 Ksat = rmissing
@@ -156,6 +164,7 @@ do y = 1,ylen
           soil%layer(l)%sand = soil%layer(l)%sand * scale
           soil%layer(l)%silt = soil%layer(l)%silt * scale
           soil%layer(l)%clay = soil%layer(l)%clay * scale
+
         end if
       end do
 
@@ -163,9 +172,12 @@ do y = 1,ylen
 
       call simplesoil(soil)
       
+      ! bulk(x,y,:) = soil%layer%bulk
       Tsat(x,y,:) = soil%layer%Tsat
-      Ksat(x,y,:) = soil%layer%Ksat
+      T33(x,y,:) = soil%layer%T33
+      T1500(x,y,:) = soil%layer%T1500
       whc(x,y,:)  = soil%layer%whc
+      Ksat(x,y,:) = soil%layer%Ksat
       
       if (any(soil%layer%whc <= 0)) then
 
@@ -192,6 +204,23 @@ status = nf90_open(outfile,nf90_write,ncid)
 if (status /= nf90_noerr) call handle_err(status)
 
 ! --
+! bulk density
+
+status = nf90_inq_varid(ncid,'bulk',varid)
+if (status /= nf90_noerr) call handle_err(status)
+
+status = nf90_put_var(ncid,varid,bulk)
+if (status /= nf90_noerr) call handle_err(status)
+
+actual_range = [minval(bulk,mask=bulk/=rmissing),maxval(bulk,mask=bulk/=rmissing)]
+
+status = nf90_put_att(ncid,varid,'actual_range',actual_range)
+if (status /= nf90_noerr) call handle_err(status)
+
+write(0,*)'Bulk density range: ',actual_range
+
+! --
+! Tsat
 
 status = nf90_inq_varid(ncid,'Tsat',varid)
 if (status /= nf90_noerr) call handle_err(status)
@@ -207,6 +236,39 @@ if (status /= nf90_noerr) call handle_err(status)
 write(0,*)'Tsat range: ',actual_range
 
 ! --
+! T33
+
+status = nf90_inq_varid(ncid,'T33',varid)
+if (status /= nf90_noerr) call handle_err(status)
+
+status = nf90_put_var(ncid,varid,T33)
+if (status /= nf90_noerr) call handle_err(status)
+
+actual_range = [minval(T33,mask=T33/=rmissing),maxval(T33,mask=T33/=rmissing)]
+
+status = nf90_put_att(ncid,varid,'actual_range',actual_range)
+if (status /= nf90_noerr) call handle_err(status)
+
+write(0,*)'T33 range: ',actual_range
+
+! --
+! T1500
+
+status = nf90_inq_varid(ncid,'T1500',varid)
+if (status /= nf90_noerr) call handle_err(status)
+
+status = nf90_put_var(ncid,varid,T1500)
+if (status /= nf90_noerr) call handle_err(status)
+
+actual_range = [minval(T1500,mask=T1500/=rmissing),maxval(T1500,mask=T1500/=rmissing)]
+
+status = nf90_put_att(ncid,varid,'actual_range',actual_range)
+if (status /= nf90_noerr) call handle_err(status)
+
+write(0,*)'T1500 range: ',actual_range
+
+! --
+! water holding capacity
 
 status = nf90_inq_varid(ncid,'whc',varid)
 if (status /= nf90_noerr) call handle_err(status)
@@ -222,6 +284,7 @@ if (status /= nf90_noerr) call handle_err(status)
 write(0,*)'whc range: ',actual_range
 
 ! --
+! Ksat
 
 status = nf90_inq_varid(ncid,'Ksat',varid)
 if (status /= nf90_noerr) call handle_err(status)
@@ -300,4 +363,3 @@ end if
 end subroutine handle_err
 
 end program soilcalc
-

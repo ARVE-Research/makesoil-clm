@@ -112,7 +112,7 @@ sed -e "s/xlen/$xlen/g" -e "s/ylen/$ylen/g" soildata.cdl | ncgen -4 -o $outfile
 # -----
 # 5) paste soil properties into file
 
-for var in sand silt clay cfvo soc
+for var in sand silt clay cfvo soc bdod
 do
 
   l=1

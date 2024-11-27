@@ -4,11 +4,17 @@
 
 outdir=${1}
 
+if [ ! -d $outdir ]
+then
+  echo "error: must specify an output directory on the command line"
+  exit
+fi
+
 # create the file list for downloading
 
 echo "# filelist" > filelist.txt
 
-for var in sand silt clay cfvo soc
+for var in bdod # sand silt clay cfvo soc
 do
   for layer in 0-5cm 5-15cm 15-30cm 30-60cm 60-100cm 100-200cm
   do

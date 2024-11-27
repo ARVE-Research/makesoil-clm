@@ -23,7 +23,7 @@ LIBS     = -lnetcdff
 
 # ---------------------------------------------
 
-PASTEWRB_OBJS = pastewrb.o
+PASTESOILCODE_OBJS = pastesoilcode.o
 
 PASTESOIL_OBJS = pastesoil.o
 
@@ -51,10 +51,10 @@ SOILCALC_OBJS = pedotransfermod.o \
 %.o : %.F90
 	$(FC) $(FCFLAGS) -c -o $(*F).o $(CPPFLAGS) $<
 
-all::	pastewrb ncpaste pastesoil pastecoords soilcalc
+all::	pastesoilcode ncpaste pastesoil pastecoords soilcalc
 
-pastewrb: $(PASTEWRB_OBJS)
-	$(FC) $(FCFLAGS) -o pastewrb $(PASTEWRB_OBJS) $(LDFLAGS) $(LIBS)
+pastesoilcode: $(PASTESOILCODE_OBJS)
+	$(FC) $(FCFLAGS) -o pastesoilcode $(PASTESOILCODE_OBJS) $(LDFLAGS) $(LIBS)
 
 pastesoil: $(PASTESOIL_OBJS)
 	$(FC) $(FCFLAGS) -o pastesoil $(PASTESOIL_OBJS) $(LDFLAGS) $(LIBS)
@@ -69,4 +69,4 @@ soilcalc: $(SOILCALC_OBJS)
 	$(FC) $(FCFLAGS) -o soilcalc $(SOILCALC_OBJS) $(LDFLAGS) $(LIBS)
 
 clean::	
-	-rm *.o *.mod pastewrb ncpaste pastesoil pastecoords soilcalc
+	-rm *.o *.mod pastesoilcode ncpaste pastesoil pastecoords soilcalc
