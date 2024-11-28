@@ -2,6 +2,10 @@ module pedotransfermod
 
 ! module containing the pedotransfer functions of Balland et al. (2008) as adjusted and modified by Sandoval et al. (2024)
 
+use parametersmod, only : sp
+
+implicit none
+
 public :: fDp
 public :: fDb
 public :: fTsat
@@ -23,11 +27,17 @@ public :: fKsat
 ! Vertisols: 40-45
 ! Andisols: 20-27
 
+! Typical bulk densities of coarse fragments
+!  Sedimentary rocks   Siliceous  Mafic Peridotite
+! 1.8 2.0 2.2 2.4 2.6   2.7 2.8    3.0     3.2
+
+real(sp), parameter :: Dcf = 2.7  ! bulk density of coarse fragments (g cm-3)
+
 contains
 
 ! ----------------------------
 
-real(sp) function fDp(som)
+real(sp) function fDp(orgm,cfvo)
 
 ! function to estimate soil particle density (g cm-3) (Sandoval et al., 2024, eqn A26)
 
@@ -35,15 +45,26 @@ use parametersmod, only : sp
 
 implicit none
 
-real(sp), intent(in) :: som  ! soil organic matter (mass fraction)
+! argument
 
-fDp = 1. / (som / 1.3 + (1. - som) / 2.65)
+real(sp), intent(in) :: orgm  ! soil organic matter (mass fraction)
+real(sp), intent(in) :: cfvo  ! coarse fragment content (volume fraction)
+
+! local variable
+
+real(sp) :: Dp
+
+! ---
+
+Dp = 1. / (orgm / 1.3 + (1. - orgm) / 2.65)
+
+fDp = Dp * (1. - cfvo) + cfvo * Dcf
 
 end function fDp
 
 ! ----------------------------
 
-real(sp) function fDb(usda,clay,depth,som,Dp)
+real(sp) function fDb(usda,clay,cfvo,zpos,orgm,Dp)
 
 ! function to estimate soil bulk density (Balland et al., 2008, eqn 18) in g cm-3
 ! This function requires information about the USDA soil type to determine the parameter set to use,
@@ -57,11 +78,12 @@ implicit none
 
 ! arguments
 
-integer,  intent(in) :: usda   ! USDA 2014 suborder class (code, complete legend in SoilGrids TAXOUSDA file)
-real(sp), intent(in) :: clay   ! clay content (mass fraction)
-real(sp), intent(in) :: depth  ! below surface (cm)
-real(sp), intent(in) :: som    ! organic matter content (mass fraction)
-real(sp), intent(in) :: Dp     ! particle density (g cm-3)
+integer,  intent(in) :: usda  ! USDA 2014 suborder class (code, complete legend in SoilGrids TAXOUSDA file)
+real(sp), intent(in) :: clay  ! clay content (mass fraction)
+real(sp), intent(in) :: cfvo  ! coarse fragment content (volume fraction)
+real(sp), intent(in) :: zpos  ! below surface (cm)
+real(sp), intent(in) :: orgm  ! organic matter content (mass fraction)
+real(sp), intent(in) :: Dp    ! particle density (g cm-3)
 
 !  Parameters specific to USDA soil order and suborder
 
@@ -94,6 +116,8 @@ real(sp) :: a
 real(sp) :: b
 real(sp) :: c
 real(sp) :: d
+
+real(sp) :: Dbs
 
 ! ----
 
@@ -134,7 +158,9 @@ b = pars(2)
 c = pars(3)
 d = pars(4)
 
-fDb = (a + (Dp - a - b * (1. - clay)) * (1. - exp(-c * depth))) / (1. + d * som)
+Dbs = (a + (Dp - a - b * (1. - clay)) * (1. - exp(-c * zpos))) / (1. + d * orgm)
+
+fDb = Dbs * (1. - cfvo) + cfvo * Dcf  ! Balland et al. (2008) eqn A.13
 
 end function fDb
 
@@ -157,7 +183,7 @@ end function fTsat
 
 ! ----------------------------
 
-real(sp) function fT33(Tsat,clay,sand,som)
+real(sp) function fT33(Tsat,clay,sand,orgm)
 
 ! function to estimate soil water content at field capacity Theta-33 (Sandoval et al., 2024, eqn A25b) (units)
 
@@ -170,7 +196,7 @@ implicit none
 real(sp), intent(in) :: Tsat  ! soil porosity (units)
 real(sp), intent(in) :: clay  ! clay content (mass fraction)
 real(sp), intent(in) :: sand  ! sand content (mass fraction)
-real(sp), intent(in) :: som   ! soil organic matter content (mass fraction)
+real(sp), intent(in) :: orgm   ! soil organic matter content (mass fraction)
 
 ! parameters
 
@@ -181,7 +207,7 @@ real(sp), parameter :: d =  0.9402
 
 ! ----
 
-fT33 = Tsat * (c + (d - c) * clay**0.5) * exp((a * sand - b * som) / Tsat)
+fT33 = Tsat * (c + (d - c) * clay**0.5) * exp((a * sand - b * orgm) / Tsat)
 
 end function fT33
 
@@ -213,7 +239,7 @@ end function fT1500
 
 ! ----------------------------
 
-real(sp) function fKsat(sand,clay,som,Db,Tsat,T33,T1500)
+real(sp) function fKsat(sand,clay,orgm,Db,Tsat,T33,T1500)
 
 ! function to estimate saturated hydraulic conductivity (Sandoval et al., 2024) (units)
 ! NB this equation comes from the code on github in the file splash.point.R, lines 351-363
@@ -227,7 +253,7 @@ implicit none
 
 real(sp), intent(in) :: sand  ! sand content (mass fraction)
 real(sp), intent(in) :: clay  ! clay content (mass fraction)
-real(sp), intent(in) :: som   ! sand content (mass fraction)
+real(sp), intent(in) :: orgm   ! sand content (mass fraction)
 real(sp), intent(in) :: Db    ! bulk density (g cm-3) 
 real(sp), intent(in) :: Tsat  ! sand content (mass fraction)
 real(sp), intent(in) :: T33   ! sand content (mass fraction)
@@ -262,7 +288,7 @@ B = num / (log(T33) - log(T1500))
 
 lambda = 1. / B
 
-fKsat = Ksmax / (1. + exp(k2 * sand + k3 * Db + k4 * clay + k5 * Tdrain + k6 * som + k7 * lambda))
+fKsat = Ksmax / (1. + exp(k2 * sand + k3 * Db + k4 * clay + k5 * Tdrain + k6 * orgm + k7 * lambda))
 
 end function fKsat
 
