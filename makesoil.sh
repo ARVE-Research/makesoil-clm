@@ -107,7 +107,15 @@ sed -e "s/xlen/$xlen/g" -e "s/ylen/$ylen/g" soildata.cdl | ncgen -4 -o $outfile
 # -----
 # 4) paste WRB code into output
 
-./pastewrb tmp.nc $outfile
+./pastesoilcode tmp.nc $outfile WRB
+
+# 4a) paste USDA soil class into output
+
+infile=$datadir/TAXOUSDA_250m_ll.tif
+
+gdalwarp --quiet -overwrite -t_srs $proj -te $extent -wm 8192 -multi -wo NUM_THREADS=16 -tr $res $res -tap -r mode -of netCDF $infile tmp.nc
+
+./pastesoilcode tmp.nc $outfile USDA
 
 # -----
 # 5) paste soil properties into file

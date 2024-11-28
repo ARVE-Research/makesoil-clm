@@ -2,9 +2,12 @@ program soilcalc
 
 ! use Makefile
 
-use simplesoilmod, only : i1,i2,sp,soildata,layerinfo,simplesoil
-use pedotransfermod, only : omcf
 use netcdf
+use parametersmod,     only : i1,sp
+use soilpropertiesmod, only : omcf,soildata,soilproperties
+
+! use simplesoilmod, only : i1,i2,sp,soildata,layerinfo,simplesoil
+! use pedotransfermod, only : omcf
 
 implicit none
 
@@ -24,6 +27,8 @@ integer :: nl
 integer :: x
 integer :: y
 integer :: l
+
+integer(i1), allocatable, dimension(:,:) :: usda
 
 real(sp), allocatable, dimension(:,:,:) :: sand
 real(sp), allocatable, dimension(:,:,:) :: silt
@@ -103,39 +108,49 @@ do l = 1,nl
   write(0,*)l,zpos(l),dz(l)
 end do
 
+allocate(usda(xlen,ylen))
 allocate(sand(xlen,ylen,nl))
 allocate(silt(xlen,ylen,nl))
 allocate(clay(xlen,ylen,nl))
 allocate(cfvo(xlen,ylen,nl))
 allocate(soc(xlen,ylen,nl))
-allocate(bulk(xlen,ylen,nl))
 
 allocate(datacheck(5,nl))
 
 ! ---------
 ! read input soil spatial data
 
+status = nf90_inq_varid(ncid,'USDA',varid)
+if (status /= nf90_noerr) call handle_err(status)
+
+status = nf90_get_var(ncid,varid,usda)
+if (status /= nf90_noerr) call handle_err(status)
+
 call getvar('sand',sand)
 call getvar('silt',silt)
 call getvar('clay',clay)
 call getvar('cfvo',cfvo)
 call getvar('soc',soc)
-call getvar('bdod',bulk)
+! call getvar('bdod',bulk)
 
 status = nf90_close(ncid)
 if (status /= nf90_noerr) call handle_err(status)
 
 ! ---------
 
+allocate(bulk(xlen,ylen,nl))
 allocate(Tsat(xlen,ylen,nl))
 allocate(T33(xlen,ylen,nl))
 allocate(T1500(xlen,ylen,nl))
 allocate(whc(xlen,ylen,nl))
 allocate(Ksat(xlen,ylen,nl))
 
-Tsat = rmissing
-Ksat = rmissing
-whc  = rmissing
+bulk  = rmissing
+Tsat  = rmissing
+T33   = rmissing
+T1500 = rmissing
+whc   = rmissing
+Ksat  = rmissing
 
 write(0,*)'calculating'
 
@@ -144,53 +159,57 @@ where (sand < 0.) sand = rmissing
 do y = 1,ylen
   do x = 1,xlen
   
+    soil%usda = usda(x,y)
+    
+    if (soil%usda <= 3) cycle  ! skip all cells with no soil classification
+  
     do l = 1,nl
       datacheck(:,l) = [sand(x,y,l),silt(x,y,l),clay(x,y,l),cfvo(x,y,l),soc(x,y,l)]
     end do
   
-    if (all(datacheck /= rmissing))  then
+    if (any(datacheck == rmissing))  cycle  ! skip cells with missing data 
     
-      soil%layer%sand = sand(x,y,:)
-      soil%layer%silt = silt(x,y,:)
-      soil%layer%clay = clay(x,y,:)
-      soil%layer%cfvo = cfvo(x,y,:)
-      soil%layer%orgm =  soc(x,y,:) * omcf
+    soil%layer%sand = sand(x,y,:)
+    soil%layer%silt = silt(x,y,:)
+    soil%layer%clay = clay(x,y,:)
+    soil%layer%cfvo = cfvo(x,y,:)
+    soil%layer%orgm =  soc(x,y,:) * omcf
+    
+    do l = 1,nl
+      if (soil%layer(l)%sand + soil%layer(l)%silt + soil%layer(l)%clay > 1.) then
       
-      do l = 1,nl
-        if (soil%layer(l)%sand + soil%layer(l)%silt + soil%layer(l)%clay > 1.) then
+        scale = 1. / (soil%layer(l)%sand + soil%layer(l)%silt + soil%layer(l)%clay)
         
-          scale = 1. / (soil%layer(l)%sand + soil%layer(l)%silt + soil%layer(l)%clay)
-          
-          soil%layer(l)%sand = soil%layer(l)%sand * scale
-          soil%layer(l)%silt = soil%layer(l)%silt * scale
-          soil%layer(l)%clay = soil%layer(l)%clay * scale
-
-        end if
-      end do
-
-      ! write(0,*)x,y,datacheck
-
-      call simplesoil(soil)
-      
-      ! bulk(x,y,:) = soil%layer%bulk
-      Tsat(x,y,:) = soil%layer%Tsat
-      T33(x,y,:) = soil%layer%T33
-      T1500(x,y,:) = soil%layer%T1500
-      whc(x,y,:)  = soil%layer%whc
-      Ksat(x,y,:) = soil%layer%Ksat
-      
-      if (any(soil%layer%whc <= 0)) then
-
-        write(0,*)x,y
-
-        do l = 1,nl
-          write(0,*)l,soil%layer(l)%sand,soil%layer(l)%clay,soil%layer(l)%whc
-        end do
+        soil%layer(l)%sand = soil%layer(l)%sand * scale
+        soil%layer(l)%silt = soil%layer(l)%silt * scale
+        soil%layer(l)%clay = soil%layer(l)%clay * scale
 
       end if
+    end do
+
+    ! write(0,*)x,y,datacheck
+
+    ! call simplesoil(soil)
+    
+    call soilproperties(soil)      
+    
+    bulk(x,y,:)  = soil%layer%bulk
+    Tsat(x,y,:)  = soil%layer%Tsat
+    T33(x,y,:)   = soil%layer%T33
+    T1500(x,y,:) = soil%layer%T1500
+    whc(x,y,:)   = soil%layer%whc
+    Ksat(x,y,:)  = soil%layer%Ksat
+    
+    if (any(soil%layer%whc <= 0)) then
+
+      write(0,*)x,y
+
+      do l = 1,nl
+        write(0,*)l,soil%layer(l)%sand,soil%layer(l)%clay,soil%layer(l)%whc
+      end do
 
     end if
-      
+
   end do
 end do
 
@@ -304,6 +323,8 @@ if (status /= nf90_noerr) call handle_err(status)
 contains
 
 subroutine getvar(name,var)
+
+use parametersmod, only : i2,sp
 
 implicit none
 

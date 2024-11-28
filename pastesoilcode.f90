@@ -90,7 +90,7 @@ if (status /= nf90_noerr) call handle_err(status)
 status = nf90_close(ncid)
 if (status /= nf90_noerr) call handle_err(status)
 
-write(0,*)"soiltype range:",actual_range
+write(0,*)trim(varname),' range:',actual_range
 
 !-------------------------------------------------------
 

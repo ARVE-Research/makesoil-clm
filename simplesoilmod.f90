@@ -1,14 +1,10 @@
 module simplesoilmod
 
-use iso_fortran_env
+use parametersmod
 
 implicit none
 
 public :: simplesoil
-
-integer, parameter :: i1 = int8
-integer, parameter :: i2 = int16
-integer, parameter :: sp = real32
 
 type layerinfo
   real(sp) :: zpos    ! depth of layer midpoint from soil surface (cm)
@@ -27,7 +23,8 @@ type layerinfo
 end type layerinfo
 
 type soildata
-  integer(i1) :: soiltype     ! WRB 2006 subgroup (code)
+  integer(i1) :: WRB     ! WRB 2006 subgroup (code)
+  integer(i1) :: USDA    ! WRB 2006 subgroup (code)
   type(layerinfo), allocatable, dimension(:) :: layer
 end type soildata
 
@@ -37,6 +34,7 @@ contains
 
 subroutine simplesoil(soil)
 
+use parametersmod
 use pedotransfermod, only : fbulk,calctheta,fKsat,ombd,omcf
 
 implicit none

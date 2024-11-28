@@ -122,7 +122,7 @@ variables:
 		soc:_DeflateLevel = 1 ;
 
 	short bdod(depth, lat, lon) ;
-		bdod:long_name = "bulk density" ;
+		bdod:long_name = "SoilGrids bulk density" ;
 		bdod:units = "g cm-3" ;
 		bdod:_FillValue = -32768s ;
 		bdod:missing_value = -32768s ;
@@ -132,12 +132,22 @@ variables:
 		bdod:_ChunkSizes = 1, ylen, xlen ;
 		bdod:_DeflateLevel = 1 ;
 
+	float bulk(depth, lat, lon) ;
+		bulk:long_name = "calculated bulk density" ;
+		bulk:units = "g cm-3" ;
+		bulk:_FillValue = -9999.f ;
+		bulk:missing_value = -9999.f ;
+		bulk:actual_range = 100.f, -100.f ;
+		bulk:_Storage = "chunked" ;
+		bulk:_ChunkSizes = 1, ylen, xlen ;
+		bulk:_DeflateLevel = 1 ;
+
 	float Tsat(depth, lat, lon) ;
 		Tsat:long_name = "soil porosity (Theta-sat)" ;
 		Tsat:units = "fraction" ;
 		Tsat:_FillValue = -9999.f ;
 		Tsat:missing_value = -9999.f ;
-		Tsat:actual_range = 0.f, 1.f ;
+		Tsat:actual_range = 100.f, -100.f ;
 		Tsat:_Storage = "chunked" ;
 		Tsat:_ChunkSizes = 1, ylen, xlen ;
 		Tsat:_DeflateLevel = 1 ;
@@ -147,7 +157,7 @@ variables:
 		T33:units = "mm cm-1" ;
 		T33:_FillValue = -9999.f ;
 		T33:missing_value = -9999.f ;
-		T33:actual_range = 0.f, 1000.f ;
+		T33:actual_range = 100.f, -100.f ;
 		T33:_Storage = "chunked" ;
 		T33:_ChunkSizes = 1, ylen, xlen ;
 		T33:_DeflateLevel = 1 ;
@@ -157,7 +167,7 @@ variables:
 		T1500:units = "mm cm-1" ;
 		T1500:_FillValue = -9999.f ;
 		T1500:missing_value = -9999.f ;
-		T1500:actual_range = 0.f, 1000.f ;
+		T1500:actual_range = 100.f, -100.f ;
 		T1500:_Storage = "chunked" ;
 		T1500:_ChunkSizes = 1, ylen, xlen ;
 		T1500:_DeflateLevel = 1 ;
@@ -167,7 +177,7 @@ variables:
 		whc:units = "mm cm-1" ;
 		whc:_FillValue = -9999.f ;
 		whc:missing_value = -9999.f ;
-		whc:actual_range = 0.f, 1000.f ;
+		whc:actual_range = 100.f, -100.f ;
 		whc:_Storage = "chunked" ;
 		whc:_ChunkSizes = 1, ylen, xlen ;
 		whc:_DeflateLevel = 1 ;

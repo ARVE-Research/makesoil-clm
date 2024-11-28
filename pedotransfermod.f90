@@ -1,244 +1,271 @@
 module pedotransfermod
 
-implicit none
+! module containing the pedotransfer functions of Balland et al. (2008) as adjusted and modified by Sandoval et al. (2024)
 
-public  :: fbulk
-public  :: calctheta
-public  :: fKsat
-private :: fTsat
+public :: fDp
+public :: fDb
+public :: fTsat
+public :: fT33
+public :: fT1500
+public :: fKsat
 
-!  type
-
-integer, parameter :: sp = selected_real_kind(4)
-
-! parameters
-real(sp), parameter :: ombd = 0.224  ! bulk density of organic matter (g cm-3)
-real(sp), parameter :: omcf = 1.724  ! conversion factor from organic carbon to organic matter
+! SoilGrids map legend for USDA soil orders
+! Histosols: 5,10-13
+! Spodosols: 15-19
+! Inceptisols: 85,86,98-94
+! Entisols: 95-99
+! Aridisols: 50-56 
+! Mollisols: 69,70,72,73,74,77
+! Aquoll, argiaquoll, argiudoll, cryaquoll, duraquoll, natrustoll and paleustoll 71,75,76
+! Alfisols: 80-84
+! Oxisols: 30-34
+! Ultisols: 60-64
+! Vertisols: 40-45
+! Andisols: 20-27
 
 contains
 
-! ---------------------------------------------------------------------------
+! ----------------------------
 
-subroutine calctheta(sand,clay,OM,bulk,Tsat,T33,T1500,soiltype)
+real(sp) function fDp(som)
 
-! equations from JAP Pollacco, 2008. Can. J. Soil Sci. 88: 761-774
+! function to estimate soil particle density (g cm-3) (Sandoval et al., 2024, eqn A26)
+
+use parametersmod, only : sp
+
+implicit none
+
+real(sp), intent(in) :: som  ! soil organic matter (mass fraction)
+
+fDp = 1. / (som / 1.3 + (1. - som) / 2.65)
+
+end function fDp
+
+! ----------------------------
+
+real(sp) function fDb(usda,clay,depth,som,Dp)
+
+! function to estimate soil bulk density (Balland et al., 2008, eqn 18) in g cm-3
+! This function requires information about the USDA soil type to determine the parameter set to use,
+! e.g., the field SoilGrids250m 2017-03 - Predicted USDA 2014 suborder classes 
+! NB not all soil soil suborders listed in Table 6 of Balland et al. (2008)
+! are present in the SoilGrids250m dataset.
+
+use parametersmod, only : sp
 
 implicit none
 
 ! arguments
 
-real(sp), intent(in)  :: sand               ! mass fraction of sand (g g-1) (0-1)
-real(sp), intent(in)  :: clay               ! mass fraction of clay (g g-1) (0-1)
-real(sp), intent(in)  :: OM                 ! mass fraction of organic matter (g g-1) (0-1) (multiply by 1.724 if input data is in terms of Carbon)
-real(sp), intent(in)  :: bulk               ! total soil bulk density (g cm-3)
-integer,  intent(in), optional :: soiltype  ! soil type code 1=typical, 2=tropical, 3=humic, 4=vitric
+integer,  intent(in) :: usda   ! USDA 2014 suborder class (code, complete legend in SoilGrids TAXOUSDA file)
+real(sp), intent(in) :: clay   ! clay content (mass fraction)
+real(sp), intent(in) :: depth  ! below surface (cm)
+real(sp), intent(in) :: som    ! organic matter content (mass fraction)
+real(sp), intent(in) :: Dp     ! particle density (g cm-3)
 
-real(sp), intent(out) :: Tsat               ! volumetric saturated water content (m3 m-3)
-real(sp), intent(out) :: T33                ! volumetric water content at field capacity (Psi = -33 kPa)   (m3 m-3)
-real(sp), intent(out) :: T1500              ! volumetric water content at wilting point  (Psi = -1500 kPa) (m3 m-3)
+!  Parameters specific to USDA soil order and suborder
 
-! parameters
-
-type fitpars
-  real(sp), dimension(2) :: Pmax
-  real(sp), dimension(2) :: Pmin
-  real(sp), dimension(2) :: Psand
-  real(sp), dimension(2) :: Pclay
-  real(sp), dimension(2) :: Pp
-end type fitpars
-
-type(fitpars) :: typical
-type(fitpars) :: tropical
-type(fitpars) :: humic
-type(fitpars) :: vitric
-
-type(fitpars) :: pars
+real(sp), dimension(4,19), parameter :: parstable = reshape( & 
+  [ 1.18, 0.89, 0.022, 6.27,  &  !  1 Histosols
+    1.18, 0.70, 0.022, 6.27,  &  !  2 Spodosols
+    1.18, 0.89, 0.022, 6.27,  &  !  3 Inceptisols General
+    1.50, 1.10, 0.010, 6.27,  &  !  4 Inceptisols Exceptions: dystropept, eutropept, halaquept, tropept, ustropept and xerumbrept
+    1.50, 1.10, 0.022, 6.27,  &  !  5 Entisols    General
+    1.50, 1.10, 0.002, 6.27,  &  !  6 Entisols    Exceptions: cryorthent
+    1.50, 1.10, 0.022, 6.27,  &  !  7 Aridisols
+    1.50, 1.10, 0.022, 6.27,  &  !  8 Mollisols   General
+    1.50, 1.40, 0.022, 6.27,  &  !  9 Mollisols   Exceptions: aquoll, argiaquoll, argiudoll, cryaquoll, duraquoll, natrustoll and paleustoll
+    1.65, 1.10, 0.022, 6.27,  &  ! 10 Alfisols    General
+    1.18, 0.89, 0.022, 6.27,  &  ! 11 Alfisols    Exceptions: cryoboralf, fragiboralf, kandiudalf, kanhaplustalf and paleudalf
+    1.40, 1.20, 0.002, 6.27,  &  ! 12 Oxisols     General
+    1.40, 1.20, 0.001, 6.27,  &  ! 13 Oxisols     Exceptions: kandiudox
+    1.55, 1.00, 0.005, 6.27,  &  ! 14 Ultisols    General
+    1.55, 1.00, 0.001, 6.27,  &  ! 15 Ultisols    Exceptions: haploxerult, kandihumult, kanhaplustult, palehumult, rhodudult and udult
+    1.90, 1.20, 0.010, 6.27,  &  ! 16 Vertisols
+    1.40, 1.10, 0.050, 6.27,  &  ! 17 Andisols    General
+    1.00, 0.00, 0.001, 2.,    &  ! 18 Andisols    Exceptions: haplaquands, hapludands, haplustands, melanudands, udivitrands, vitraquands, vitricryands, vitritorrands, vitrixerands
+    1.00, 0.00, 0.001, 2. ],  &  ! 19 Andisols    Exceptions: melanudands, udivitrands, vitraquands, vitricryands, vitritorrands, vitrixerands
+  shape(parstable))
 
 ! local variables
 
-real(sp) :: sand_om   ! sand fraction corrected for organic matter (0-1) (sand_om = (1-OM)*sand)
-real(sp) :: clay_om
+real(sp), dimension(4) :: pars
+real(sp) :: a
+real(sp) :: b
+real(sp) :: c
+real(sp) :: d
 
-real(sp), dimension(2) :: Pmin
-real(sp), dimension(2) :: Pmax
-real(sp), dimension(2) :: Pclay
-real(sp), dimension(2) :: Psand
-real(sp), dimension(2) :: Pp
+! ----
 
-real(sp) :: Wsat    ! saturated gravimetric soil moisture content (g g-1)
+select case(usda)
+case(5,10:13)             ! Histosols, including Gelisols: Histels
+  pars = parstable(:,1)
+case(15:19)               ! Spodosols
+  pars = parstable(:,2)
+case(85:86,89:94)         ! Inceptisols general
+  pars = parstable(:,3)
+case(95:99)               ! Entisols general
+  pars = parstable(:,5)
+case(6:7)                 ! Gelisols (Orthels and Turbels), using table definition for Cryorthent
+  pars = parstable(:,6)
+case(50:56)               ! Aridisols
+  pars = parstable(:,7)
+case(69:70,72:74,77)      ! Mollisols general
+  pars = parstable(:,8)
+case(71,75:76)            ! Mollisols exceptions
+  pars = parstable(:,9)
+case(80:84)               ! Alfisols general
+  pars = parstable(:,10)
+case(30:34)               ! Oxisols general
+  pars = parstable(:,12)
+case(60:64)               ! Ultisols general
+  pars = parstable(:,14)
+case(40:45)               ! Vertisols
+  pars = parstable(:,16)
+case(20:27)               ! Andisols general
+  pars = parstable(:,17)
+case default
+  write(0,*)'USDA type',usda,' was not classified, using average parameter set'
+  pars = [ 1.40, 0.95, 0.015, 5.82 ]
+end select
 
-real(sp), dimension(2) :: W  ! gravimetric soil moisture content (g g-1)
+a = pars(1)
+b = pars(2)
+c = pars(3)
+d = pars(4)
 
-! ---------------------------------------------------------------------------
-! optimal fitting parameters for W33 and W1500, from Table 7 in Pollacco 2008
+fDb = (a + (Dp - a - b * (1. - clay)) * (1. - exp(-c * depth))) / (1. + d * som)
 
-!                    FC     WP
-typical%Pmax   = [ 0.953, 0.895 ]
-typical%Pmin   = [ 0.608, 0.165 ]
-typical%Psand  = [ 0.215, 0.000 ]
-typical%Pclay  = [ 0.914, 0.759 ]
-typical%Pp     = [-0.102, 1.468 ]
+end function fDb
 
-!                    FC     WP
-tropical%Pmax  = [ 1.000, 0.891 ]
-tropical%Pmin  = [ 0.781, 0.197 ]
-tropical%Psand = [ 0.338, 0.000 ]
-tropical%Pclay = [ 2.104, 0.521 ]
-tropical%Pp    = [-2.009, 0.767 ]
+! ----------------------------
 
-!                    FC     WP   
-humic%Pmax     = [ 0.685, 0.551 ]
-humic%Pmin     = [ 0.654, 0.190 ]
-humic%Psand    = [ 0.217, 0.000 ]
-humic%Pclay    = [ 3.010, 0.372 ]
-humic%Pp       = [-1.810, 0.273 ]
+real(sp) function fTsat(Dp,Db)
 
-!                    FC     WP   
-vitric%Pmax    = [ 1.000, 1.000 ]
-vitric%Pmin    = [ 0.371, 0.094 ]
-vitric%Psand   = [ 0.187, 0.000 ]
-vitric%Pclay   = [ 0.563, 0.757 ]
-vitric%Pp      = [-0.030, 0.616 ]
+! function to estimate soil porosity Theta-sat (Sandoval et al., 2024, eqn A25c) (units)
 
-! ---------------------------------------------------------------------------
-
-if (present(soiltype)) then
-  select case(soiltype)
-  case default
-    pars = typical
-  case(2)
-    pars = tropical
-  case(3)
-    pars = humic
-  case(4)
-    pars = vitric
-  end select
-else
-  pars = typical
-end if
-
-Pmin  = pars%Pmin
-Pmax  = pars%Pmax
-Psand = pars%Psand
-Pclay = pars%Pclay
-Pp    = pars%Pp
-
-! -----
-
-sand_om = (1. - OM) * sand
-clay_om = (1. - OM) * clay
-
-Tsat = fTsat(bulk,OM,sand_om)
-
-if (bulk > 0.) then
-
-  Wsat = Tsat / bulk
-
-  ! Pollacco PTF Model 4, eqn. 7a
-  W = Wsat * (Pmin + (Pmax - Pmin) * clay_om**(Pclay + Pp * Wsat**2)) * exp(-(Psand * sand_om**3) / Wsat)
-  
-else
-  
-  Wsat = 0.
-  W    = 0.
-
-end if
-
-T33   = W(1) * bulk   ! eqn. 1, NB pw (water density assumed = 1)
-T1500 = W(2) * bulk
-
-if (T33 > Tsat) then
-  write(0,*)'invalid T33',Tsat,T33,T1500,soiltype,sand,clay,bulk,OM
-end if
-
-end subroutine calctheta
-
-! ---------------------------------------------------------------------------
-
-function fTsat(bulk,OM,sand_om)
-
-! equations from JAP Pollacco, 2008. Can. J. Soil Sci. 88: 761-774
+use parametersmod, only : sp
 
 implicit none
 
-real(sp) :: fTsat
+real(sp), intent(in) :: Dp  ! particle density (g cm-3)
+real(sp), intent(in) :: Db  ! bulk density (g cm-3)
 
-real(sp), intent(in) :: bulk     ! bulk density (g cm-3)
-real(sp), intent(in) :: OM       ! organic matter mass fraction (0-1)
-real(sp), intent(in) :: sand_om  ! sand fraction corrected for organic matter (0-1) (sand_om = (1-OM)*sand)
-
-real(sp) :: pmin   ! mineral density (g cm-3)
-real(sp) :: pom    ! particle density of organic matter (g cm-3)
-real(sp) :: pp     ! soil particle density (g cm-3)
-
-! -----
-
-pmin  = 2.69 - 0.03 * sand_om  ! pg 763
-
-pom   = 1.127 + 0.373 * OM     ! pg. 763
-
-pp    = 1. / ((OM / pom) + ((1. - OM) / pmin))  ! eqn. 3
-
-fTsat = 1. - bulk / pp   ! eqn. 2a
+fTsat = 1. - Db / Dp
 
 end function fTsat
 
-! ---------------------------------------------------------------------------
+! ----------------------------
 
-function fbulk(orgC,W15,clay,depth,silt)
+real(sp) function fT33(Tsat,clay,sand,som)
 
-! equations from Heuscher et al., (2005) Soil Sci. Soc. Am. J. 69
+! function to estimate soil water content at field capacity Theta-33 (Sandoval et al., 2024, eqn A25b) (units)
 
-real(sp) :: fbulk  ! bulk density (g cm-3)
+use parametersmod, only : sp
 
-real(sp), intent(in) :: orgC   ! mass %
-real(sp), intent(in) :: W15    ! water content at -15 bar (-1500 kPa) (mass %)
-real(sp), intent(in) :: clay   ! mass %
-real(sp), intent(in) :: silt   ! mass %
-real(sp), intent(in) :: depth  ! horizon depth (cm)
+implicit none
 
-real(sp), parameter :: incp  =  1.685    ! intercept coefficient
-real(sp), parameter :: pOC   = -0.198    ! organic carbon coefficient 
-real(sp), parameter :: pwc   = -0.0133   ! wilting point water content coefficient
-real(sp), parameter :: pclay =  0.0079   ! clay coef
-real(sp), parameter :: pdep  =  0.00014  ! depth coef
-real(sp), parameter :: psilt = -0.0007   ! silt coef
+! arguments
 
-fbulk = incp + pOC * sqrt(orgC) + pwc * W15 + pclay * clay + pdep * depth + psilt * silt
+real(sp), intent(in) :: Tsat  ! soil porosity (units)
+real(sp), intent(in) :: clay  ! clay content (mass fraction)
+real(sp), intent(in) :: sand  ! sand content (mass fraction)
+real(sp), intent(in) :: som   ! soil organic matter content (mass fraction)
 
-end function fbulk
+! parameters
 
-! ---------------------------------------------------------------------------
+real(sp), parameter :: a = -0.0547
+real(sp), parameter :: b = -0.0010
+real(sp), parameter :: c =  0.4760
+real(sp), parameter :: d =  0.9402
 
-function fKsat(Tsat,T33,T1500)
+! ----
 
-! equations from Saxton & Rawls (2006) Soil Sci. Soc. Am. J. 70
+fT33 = Tsat * (c + (d - c) * clay**0.5) * exp((a * sand - b * som) / Tsat)
 
-real(sp) :: fKsat  ! (mm h-1)
+end function fT33
 
-real(sp), intent(in) :: Tsat
-real(sp), intent(in) :: T33
-real(sp), intent(in) :: T1500
+! ----------------------------
+
+real(sp) function fT1500(T33,clay)
+
+! function to estimate soil water content at wilting point Theta-1500 (Sandoval et al., 2024, eqn A25a) (units)
+
+use parametersmod, only : sp
+
+implicit none
+
+! arguments
+
+real(sp), intent(in) :: T33   ! field capacity water content (volume fraction)
+real(sp), intent(in) :: clay  ! clay content (mass fraction)
+
+! parameters
+
+real(sp), parameter :: c =  0.2018
+real(sp), parameter :: d =  0.7809
+
+! ----
+
+fT1500 = T33 * (c + (d - c) * clay**0.5)
+
+end function fT1500
+
+! ----------------------------
+
+real(sp) function fKsat(sand,clay,som,Db,Tsat,T33,T1500)
+
+! function to estimate saturated hydraulic conductivity (Sandoval et al., 2024) (units)
+! NB this equation comes from the code on github in the file splash.point.R, lines 351-363
+! because eqn A25d in the GMD paper does not appear to produce valid results.
+
+use parametersmod, only : sp
+
+implicit none
+
+! arguments
+
+real(sp), intent(in) :: sand  ! sand content (mass fraction)
+real(sp), intent(in) :: clay  ! clay content (mass fraction)
+real(sp), intent(in) :: som   ! sand content (mass fraction)
+real(sp), intent(in) :: Db    ! bulk density (g cm-3) 
+real(sp), intent(in) :: Tsat  ! sand content (mass fraction)
+real(sp), intent(in) :: T33   ! sand content (mass fraction)
+real(sp), intent(in) :: T1500 ! sand content (mass fraction)
+
+! parameters
+
+real(sp), parameter :: Ksmax = 857.48454
+
+real(sp), parameter :: k2 = -2.70927
+real(sp), parameter :: k3 =  3.62264
+real(sp), parameter :: k4 =  7.33398
+real(sp), parameter :: k5 = -8.11795
+real(sp), parameter :: k6 = 18.75552
+real(sp), parameter :: k7 =  1.03319
 
 real(sp), parameter :: l1500 = log(1500.)
 real(sp), parameter :: l33   = log(33.)
 real(sp), parameter :: num   = l1500 - l33
 
+! local variables
+
+real(sp) :: Tdrain
 real(sp) :: B
 real(sp) :: lambda
 
-! ---
+! ----
+
+Tdrain = Tsat - T33
 
 B = num / (log(T33) - log(T1500))
 
 lambda = 1. / B
 
-! write(0,*)'fksat',Tsat,T33,T1500,lambda
-
-fKsat = 1930. * (Tsat - T33)**(3.-lambda)
+fKsat = Ksmax / (1. + exp(k2 * sand + k3 * Db + k4 * clay + k5 * Tdrain + k6 * som + k7 * lambda))
 
 end function fKsat
 
-! ---------------------------------------------------------------------------
+! ----------------------------
 
 end module pedotransfermod

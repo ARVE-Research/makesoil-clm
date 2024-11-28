@@ -31,8 +31,9 @@ NCPASTE_OBJS = ncpaste.o
 
 PASTECOORDS_OBJS = pastecoords.o
 
-SOILCALC_OBJS = pedotransfermod.o \
-                simplesoilmod.o   \
+SOILCALC_OBJS = parametersmod.o     \
+                pedotransfermod2.o  \
+                soilpropertiesmod.o \
                 soilcalc.o
 
 # ---------------------------------------------
