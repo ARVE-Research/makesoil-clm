@@ -33,30 +33,7 @@ datadir=/Volumes/Amalanchier/datasets/soils
 
 getdata=false
 
-# ------------------------
-# 0) download the raw data (only if necessary)
-
-if [ "$getdata" = true ]
-then
-  
-  echo "Downloading raw data files from ISRIC"
-  
-  # 250m WRB code (575 MB):
-  
-  curl --output-dir $datadir -O https://files.isric.org/soilgrids/former/2017-03-10/data/TAXNWRB_250m_ll.tif
-  
-  # All other soil physical properties (1km Homolosine rasters about 190 MB each, need about 6 GB for all data)
-  
-  ./download_from_isric.sh $datadir
-  
-fi
-
-# make sure the helper programs are up-to-date
-
-make
-
-# -----
-# 1) specify the output projection, extent, and resolution 
+# specify the output projection, extent, and resolution 
 
 # specify a map projection using an EPSG code, proj4 string, or external file
 
@@ -79,12 +56,37 @@ then
   res=`echo "$min / 60" | bc -l`    # convert to degrees
 fi
 
+
+
+# ------------------------
+# 0) download the raw data (only if necessary)
+
+if [ "$getdata" = true ]
+then
+  
+  echo "Downloading raw data files from ISRIC"
+  
+  # 250m WRB code (575 MB):
+  
+  curl --output-dir $datadir -O https://files.isric.org/soilgrids/former/2017-03-10/data/TAXNWRB_250m_ll.tif
+  
+  # All other soil physical properties (1km Homolosine rasters about 190 MB each, need about 6 GB for all data)
+  
+  ./download_from_isric.sh $datadir
+  
+fi
+
 # -----
-# 2) extract the WRB code from the source file and resample/reproject as required
+# make sure the helper programs are up-to-date
+
+make
+
+# -----
+# 2) extract the WRB and USDA soil type codes
 
 infile=$datadir/TAXNWRB_250m_ll.tif
 
-gdalwarp --quiet -overwrite -t_srs $proj -te $extent -wm 8192 -multi -wo NUM_THREADS=16 -tr $res $res -tap -r mode -of netCDF $infile tmp.nc
+gdalwarp --quiet -overwrite -t_srs $proj -te $extent -wm 12G -multi -wo NUM_THREADS=16 -tr $res $res -tap -r mode -of netCDF $infile tmp.nc
 
 # get the dimensions of the WRB file
 
@@ -109,16 +111,40 @@ sed -e "s/xlen/$xlen/g" -e "s/ylen/$ylen/g" soildata.cdl | ncgen -4 -o $outfile
 
 ./pastesoilcode tmp.nc $outfile WRB
 
-# 4a) paste USDA soil class into output
+# 5) paste USDA soil class into output
 
 infile=$datadir/TAXOUSDA_250m_ll.tif
 
-gdalwarp --quiet -overwrite -t_srs $proj -te $extent -wm 8192 -multi -wo NUM_THREADS=16 -tr $res $res -tap -r mode -of netCDF $infile tmp.nc
+gdalwarp --quiet -overwrite -t_srs $proj -te $extent -wm 12G -multi -wo NUM_THREADS=16 -tr $res $res -tap -r mode -of netCDF $infile tmp.nc
 
 ./pastesoilcode tmp.nc $outfile USDA
 
 # -----
-# 5) paste soil properties into file
+# 6) paste soil depth into output
+
+# infile=$datadir/hill-slope_valley-bottom.tif  # upland_valley-bottom_and_lowland_sedimentary_deposit_thickness.tif # upland_hill-slope_soil_thickness.tif
+# 
+# gdalwarp -overwrite -t_srs $proj -te $extent -wm 12G -multi -wo NUM_THREADS=16 -tr $res $res -tap -r average -of netCDF $infile tmp.nc
+
+# infile=$datadir/average_soil_and_sedimentary-deposit_thickness.tif
+# 
+# gdalwarp -overwrite -t_srs $proj -te $extent -wm 12G -multi -wo NUM_THREADS=16 -tr $res $res -tap -r med -of netCDF $infile tmp.nc
+
+# gdalwarp -overwrite -t_srs $proj -te $extent -wm 12G -multi -wo NUM_THREADS=16 -tr $res $res -tap -r mode -of netCDF $infile tmp.nc
+
+# exit
+# 
+# ./pastesoilcode tmp.nc $outfile thickness
+
+./makethickness $outfile
+
+# -----
+# 7) add coordinates
+
+./pastecoords tmp.nc $outfile
+
+# -----
+# 8) paste soil properties into file
 
 for var in sand silt clay cfvo soc bdod
 do
@@ -130,7 +156,7 @@ do
     
     infile=$datadir/$var"_"$level"cm_mean_1000.tif"
     
-    gdalwarp --quiet -overwrite -t_srs $proj -te $extent -wm 8192 -multi -wo NUM_THREADS=16 -tr $res $res -tap -r mode -of netCDF $infile tmp.nc
+    gdalwarp --quiet -overwrite -t_srs $proj -te $extent -wm 12G -multi -wo NUM_THREADS=16 -tr $res $res -tap -r mode -of netCDF $infile tmp.nc
     
     ncatted -a scale_factor,Band1,c,d,0.1 tmp.nc
 
@@ -142,19 +168,12 @@ do
 done
 
 # -----
-# 6) add coordinates
-
-./pastecoords tmp.nc $outfile
-
-exit
-
-# -----
-# 7) calculate derived soil properties
+# 9) calculate derived soil properties
 
 ./soilcalc $outfile $outfile
 
 # -----
-# 8) finish
+# 10) finish
 
 rm tmp.nc
 
