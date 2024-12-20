@@ -56,8 +56,6 @@ then
   res=`echo "$min / 60" | bc -l`    # convert to degrees
 fi
 
-
-
 # ------------------------
 # 0) download the raw data (only if necessary)
 
@@ -82,13 +80,13 @@ fi
 make
 
 # -----
-# 2) extract the WRB and USDA soil type codes
+# 2) decimate or project the WRB soil code raster into the target map domain and projection to retrieve the output file dimensions
 
 infile=$datadir/TAXNWRB_250m_ll.tif
 
 gdalwarp --quiet -overwrite -t_srs $proj -te $extent -wm 12G -multi -wo NUM_THREADS=16 -tr $res $res -tap -r mode -of netCDF $infile tmp.nc
 
-# get the dimensions of the WRB file
+# get the dimensions of the target file
 
 fileinfo=( $(gmt grdinfo -C tmp.nc?Band1) )
 

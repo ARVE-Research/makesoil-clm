@@ -69,7 +69,7 @@ real(sp) function fDb(usda,clay,cfvo,zpos,orgm,Dp)
 ! function to estimate soil bulk density (Balland et al., 2008, eqn 18) in g cm-3
 ! This function requires information about the USDA soil type to determine the parameter set to use,
 ! e.g., the field SoilGrids250m 2017-03 - Predicted USDA 2014 suborder classes 
-! NB not all soil soil suborders listed in Table 6 of Balland et al. (2008)
+! NB not all of the soil suborders listed in Table 6 of Balland et al. (2008)
 ! are present in the SoilGrids250m dataset.
 
 use parametersmod, only : sp
