@@ -12,6 +12,7 @@ The script uses the 1km [SoilGrids v2.0](https://www.isric.org/explore/soilgrids
 The script also uses the following 250m soil type rasters from the [2017 SoilGrids data](https://www.isric.org/explore/soilgrids/faq-soilgrids-2017) (Hengl et al, 2017):
 * WRB (2006) soil subgroup class
 * USDA (2014) soil suborder class
+
 The USDA class is used to inform the pedotransfer function for bulk density following Balland et al. (2008). Other pedotransfer functions are based on Sandoval et al. (2024) and references therein.
 
 Finally, the script adds a field of soil/regolith thickness to the output netCDF file that comes from the Pelletier et al. (2016) "gridded global data set of soil, intact regolith, and sedimentary deposit thicknesses".
