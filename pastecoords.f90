@@ -1,5 +1,7 @@
 program pastecoords
 
+! gfortran -Wall -o pastecoords pastecoords.f90 -I/usr/local/include -L/usr/local/lib -lnetcdff
+
 use iso_fortran_env
 use netcdf
 
@@ -9,8 +11,8 @@ integer, parameter :: sp = real32
 integer, parameter :: dp = real64
 integer, parameter :: i2 = int16
 
-character(100) :: infile
-character(100) :: outfile
+character(200) :: infile
+character(200) :: outfile
 
 integer :: status
 integer :: ncid
@@ -28,10 +30,10 @@ real(dp) :: dy2
 real(dp), allocatable, dimension(:) :: lon
 real(dp), allocatable, dimension(:) :: lat
 
-integer, parameter :: nl = 6
+integer, parameter :: nl = 10
 
-real(sp), parameter, dimension(nl) :: zpos = [ 2.5, 10., 22.5, 45., 80., 150. ]
-real(sp), parameter, dimension(nl) :: dz   = [ 5.,  10., 15.,  30., 40., 100. ]
+real(sp), dimension(nl) :: zpos
+real(sp), dimension(nl) :: dz
 
 integer :: l
 
@@ -39,11 +41,21 @@ real(sp), dimension(2,nl) :: layer_bnds
 
 ! ------------------------------------------------------------------------------------------------------------
 
+zpos = [ 0.007100635, 0.027925, 0.06225858, 0.1188651, 0.2121934, 0.3660658, 0.6197585, 1.038027, 1.727635, 2.864607 ]
+
+zpos = zpos * 100.
+
+dz(1) = 2. * zpos(1)
+
+do l = 2,nl
+  dz(l) = 2. * (zpos(l) - sum(dz(1:l-1)))
+end do
+
 do l = 1,nl
   layer_bnds(1,l) = zpos(l) - dz(l) / 2.
   layer_bnds(2,l) = zpos(l) + dz(l) / 2.
   
-  write(0,*)l,layer_bnds(:,l)
+  write(0,'(i5,4f8.1)')l,dz(l),layer_bnds(1,l),zpos(l),layer_bnds(2,l)
   
 end do
 

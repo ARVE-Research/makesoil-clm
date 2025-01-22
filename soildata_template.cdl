@@ -1,7 +1,7 @@
 netcdf soildata {
 dimensions:
-  lon = 360 ;
-  lat = 180 ;
+  lon = xlen ;
+  lat = ylen ;
   depth = 10 ;
   nb = 2 ;
 
@@ -10,13 +10,13 @@ variables:
   double lon(lon) ;
     lon:long_name = "longitude" ;
     lon:units = "degrees_east" ;
-    lon:actual_range = 0., 360. ;
+    lon:actual_range = xmin., xmax. ;
     lon:axis = "X" ;
 
   double lat(lat) ;
     lat:long_name = "latitude" ;
     lat:units = "degrees_north" ;
-    lat:actual_range = -90., 90. ;
+    lat:actual_range = ymin., ymax. ;
     lat:axis = "Y" ;
 
   float depth(depth) ;
@@ -42,7 +42,7 @@ variables:
     landfrac:actual_range = 100.f, -100.f ;
     landfrac:source = "input data file" ;
     landfrac:_Storage = "chunked" ;
-    landfrac:_ChunkSizes = 180, 360 ;
+    landfrac:_ChunkSizes = ylen, xlen ;
     landfrac:_DeflateLevel = 1 ;
 
   byte WRB(lat, lon) ;
@@ -54,7 +54,7 @@ variables:
     WRB:valid_range = 1b, 118b ;
     WRB:source = "SoilGrids 2017" ;
     WRB:_Storage = "chunked" ;
-    WRB:_ChunkSizes = 180, 360 ;
+    WRB:_ChunkSizes = ylen, xlen ;
     WRB:_DeflateLevel = 1 ;
 
   byte USDA(lat, lon) ;
@@ -66,7 +66,7 @@ variables:
     USDA:valid_range = 1b, 99b ;
     USDA:source = "SoilGrids 2017" ;
     USDA:_Storage = "chunked" ;
-    USDA:_ChunkSizes = 180, 360 ;
+    USDA:_ChunkSizes = ylen, xlen ;
     USDA:_DeflateLevel = 1 ;
 
   float thickness(lat, lon) ;
@@ -77,7 +77,7 @@ variables:
     thickness:actual_range = 100.f, -100.f ;
     thickness:source = "Pelletier et al., 2016" ;
     thickness:_Storage = "chunked" ;
-    thickness:_ChunkSizes = 180, 360 ;
+    thickness:_ChunkSizes = ylen, xlen ;
     thickness:_DeflateLevel = 1 ;
     
   short sand(depth, lat, lon) ;
@@ -88,10 +88,10 @@ variables:
     sand:actual_range = 100.f, -100.f ;
     sand:valid_range = 0s, 1000s ;
     sand:scale_factor = 0.1f ;
-    sand:source = "CLM input file" ;
+    sand:source = "SoilGrids 2020" ;
     sand:_Storage = "chunked" ;
     sand:_Shuffle = "true" ;
-    sand:_ChunkSizes = 1, 180, 360 ;
+    sand:_ChunkSizes = 1, ylen, xlen ;
     sand:_DeflateLevel = 1 ;
 
   short silt(depth, lat, lon) ;
@@ -102,10 +102,10 @@ variables:
     silt:actual_range = 100.f, -100.f ;
     silt:valid_range = 0s, 1000s ;
     silt:scale_factor = 0.1f ;
-    silt:source = "CLM input file" ;
+    silt:source = "SoilGrids 2020" ;
     silt:_Storage = "chunked" ;
     silt:_Shuffle = "true" ;
-    silt:_ChunkSizes = 1, 180, 360 ;
+    silt:_ChunkSizes = 1, ylen, xlen ;
     silt:_DeflateLevel = 1 ;
 
   short clay(depth, lat, lon) ;
@@ -116,10 +116,10 @@ variables:
     clay:actual_range = 100.f, -100.f ;
     clay:valid_range = 0s, 1000s ;
     clay:scale_factor = 0.1f ;
-    clay:source = "CLM input file" ;
+    clay:source = "SoilGrids 2020" ;
     clay:_Storage = "chunked" ;
     clay:_Shuffle = "true" ;
-    clay:_ChunkSizes = 1, 180, 360 ;
+    clay:_ChunkSizes = 1, ylen, xlen ;
     clay:_DeflateLevel = 1 ;
 
   short cfvo(depth, lat, lon) ;
@@ -130,10 +130,10 @@ variables:
     cfvo:actual_range = 100.f, -100.f ;
     cfvo:valid_range = 0s, 1000s ;
     cfvo:scale_factor = 0.001f ;
-    cfvo:source = "CLM input file" ;
+    cfvo:source = "SoilGrids 2020" ;
     cfvo:_Storage = "chunked" ;
     cfvo:_Shuffle = "true" ;
-    cfvo:_ChunkSizes = 1, 180, 360 ;
+    cfvo:_ChunkSizes = 1, ylen, xlen ;
     cfvo:_DeflateLevel = 1 ;
 
   short soc(depth, lat, lon) ;
@@ -144,10 +144,10 @@ variables:
     soc:actual_range = 100.f, -100.f ;
     soc:valid_range = 0s, 10000s ;
     soc:scale_factor = 0.1f ;
-    soc:source = "CLM input file" ;
+    soc:source = "SoilGrids 2020" ;
     soc:_Storage = "chunked" ;
     soc:_Shuffle = "true" ;
-    soc:_ChunkSizes = 1, 180, 360 ;
+    soc:_ChunkSizes = 1, ylen, xlen ;
     soc:_DeflateLevel = 1 ;
 
   short bdod(depth, lat, lon) ;
@@ -157,9 +157,9 @@ variables:
     bdod:missing_value = -32768s ;
     bdod:actual_range = 0.f, 0.f ;
     bdod:scale_factor = 0.01f ;
-    bdod:source = "CLM input file" ;
+    bdod:source = "SoilGrids 2020" ;
     bdod:_Storage = "chunked" ;
-    bdod:_ChunkSizes = 1, 180, 360 ;
+    bdod:_ChunkSizes = 1, ylen, xlen ;
     bdod:_DeflateLevel = 1 ;
 
   float bulk(depth, lat, lon) ;
@@ -170,7 +170,7 @@ variables:
     bulk:actual_range = 100.f, -100.f ;
     bulk:source = "Balland et al., 2008" ;
     bulk:_Storage = "chunked" ;
-    bulk:_ChunkSizes = 1, 180, 360 ;
+    bulk:_ChunkSizes = 1, ylen, xlen ;
     bulk:_DeflateLevel = 1 ;
 
   float Tsat(depth, lat, lon) ;
@@ -181,7 +181,7 @@ variables:
     Tsat:actual_range = 100.f, -100.f ;
     Tsat:source = "Sandoval et al., 2024" ;
     Tsat:_Storage = "chunked" ;
-    Tsat:_ChunkSizes = 1, 180, 360 ;
+    Tsat:_ChunkSizes = 1, ylen, xlen ;
     Tsat:_DeflateLevel = 1 ;
 
   float T33(depth, lat, lon) ;
@@ -192,7 +192,7 @@ variables:
     T33:actual_range = 100.f, -100.f ;
     T33:source = "Sandoval et al., 2024" ;
     T33:_Storage = "chunked" ;
-    T33:_ChunkSizes = 1, 180, 360 ;
+    T33:_ChunkSizes = 1, ylen, xlen ;
     T33:_DeflateLevel = 1 ;
 
   float T1500(depth, lat, lon) ;
@@ -203,7 +203,7 @@ variables:
     T1500:actual_range = 100.f, -100.f ;
     T1500:source = "Sandoval et al., 2024" ;
     T1500:_Storage = "chunked" ;
-    T1500:_ChunkSizes = 1, 180, 360 ;
+    T1500:_ChunkSizes = 1, ylen, xlen ;
     T1500:_DeflateLevel = 1 ;
 
   float whc(depth, lat, lon) ;
@@ -213,7 +213,7 @@ variables:
     whc:missing_value = -9999.f ;
     whc:actual_range = 100.f, -100.f ;
     whc:_Storage = "chunked" ;
-    whc:_ChunkSizes = 1, 180, 360 ;
+    whc:_ChunkSizes = 1, ylen, xlen ;
     whc:_DeflateLevel = 1 ;
 
   float Ksat(depth, lat, lon) ;
@@ -224,7 +224,7 @@ variables:
     Ksat:actual_range = 100.f, -100.f ;
     Ksat:source = "Sandoval et al., 2024 (code only)" ;
     Ksat:_Storage = "chunked" ;
-    Ksat:_ChunkSizes = 1, 180, 360 ;
+    Ksat:_ChunkSizes = 1, ylen, xlen ;
 
 // global attributes:
     :Conventions = "CF-1.11" ;
